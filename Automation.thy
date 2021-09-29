@@ -9,8 +9,6 @@ text \<open>
 
 subsection \<open>Noschinski\<close>
 
-
-
 ML \<open>
 fun not_trancl s _ (_, inst) =
   let
@@ -20,27 +18,45 @@ fun not_trancl s _ (_, inst) =
   end
 \<close>
 
+thm trancl_into_rtrancl
+
 declare trancl_into_rtrancl[backward]
 declare rtranclD[forward]
-
+ML \<open>
+  get_prfsteps (Context.Proof @{context}) |> rev
+\<close>
 declare reachable_def[rewrite]
 lemma rtrancl_onD[forward]: "(a, b) \<in> rtrancl_on A r \<Longrightarrow> a = b \<and> a \<in> A \<and> b \<in> A \<or> a \<noteq> b \<and> (a, b) \<in> r\<^sup>+"
   apply(induction rule: rtrancl_on.induct)
    apply(auto simp: trancl.trancl_into_trancl)
   done
-
 declare rtrancl_refl[resolve]
+local_setup \<open>add_forward_prfstep_cond @{thm trancl_trans} (with_conds ["?x \<noteq> ?y", "?y \<noteq> ?x"])\<close>
+local_setup \<open>add_forward_prfstep_cond @{thm r_into_trancl} [with_filt (not_trancl "r")]\<close>
 
-setup \<open>add_forward_prfstep_cond @{thm trancl_trans} (with_conds ["?x \<noteq> ?y", "?y \<noteq> ?x"])\<close>
+context wf_digraph
+begin
 
-setup \<open>add_forward_prfstep_cond @{thm r_into_trancl} [with_filt (not_trancl "r")]\<close>
+thm reachable_awalkI reachable_adj_trans adj_reachable_trans reachable_awalk reachable_trans
+  reachable1_reachable_trans reachable_reachable1_trans reachable_neq_reachable1
+reachable1_reachable reachable_adjI
 
-declare wf_digraph.reachable_awalkI[forward]
-
+declare [[show_hyps]]
+local_setup \<open>add_forward_prfstep @{thm reachable_awalkI}\<close>
 
 ML \<open>
-get_prfsteps @{theory} |> rev
+val b = Normalizer.get_normalizers (Context.Proof @{context})
+val a = get_prfsteps (Context.Proof @{context}) |> rev
 \<close>
+end
+ML \<open>
+get_prfsteps (Context.Proof @{context}) |> rev
+\<close>
+
+lemma (in wf_digraph) "awalk u p v \<Longrightarrow> u \<rightarrow>\<^sup>* v"
+  using [[show_hyps]]
+  apply(auto2)
+  done
 
 print_attributes
 lemma (in wf_digraph) "u \<rightarrow>\<^sup>+ v \<Longrightarrow> v \<rightarrow>\<^sup>* y \<Longrightarrow> y \<rightarrow> x \<Longrightarrow> u \<rightarrow>\<^sup>+ x"
@@ -48,10 +64,19 @@ lemma (in wf_digraph) "u \<rightarrow>\<^sup>+ v \<Longrightarrow> v \<rightarro
   apply(auto2)
   done
 
+lemma "(u, v) \<in> r\<^sup>* \<Longrightarrow> (v, y) \<in> r\<^sup>* \<Longrightarrow> (y, x) \<in> r\<^sup>+ \<Longrightarrow> (u, x) \<in> r\<^sup>*"
+  using [[print_trace]]
+  apply(auto2)
+  done
+
+
+thm rtranclD
 lemma (in wf_digraph)
   assumes "awalk u p v" "v \<rightarrow>\<^sup>* y" "y \<rightarrow> x"
-  shows "u \<rightarrow>\<^sup>* x" "\<exists>q. awalk u q x"
+  shows "u \<rightarrow>\<^sup>* x"
   using assms
+  using [[show_hyps]]
+
   apply(auto2)
   using assms reachable_adj_trans reachable_awalk reachable_trans
    apply -
