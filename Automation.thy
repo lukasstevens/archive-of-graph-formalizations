@@ -14,24 +14,31 @@ fun not_trancl s _ (_, inst) =
   let
     val t = (lookup_inst inst s)
   in
-    case t of (Const (@{const_name trancl}, _) $ _) => false | _ => true
+    case t of
+      (Const (@{const_name trancl}, _) $ _) => false
+    | (Const (@{const_name rtrancl}, _) $_) => false
+    | (Const (@{const_name rtrancl_on}, _) $ _ $ _) => false
+    | _ => true
   end
 \<close>
 
 thm trancl_into_rtrancl
 
-declare trancl_into_rtrancl[backward]
+declare trancl_into_rtrancl[resolve]
+
 declare rtranclD[forward]
 ML \<open>
   get_prfsteps (Context.Proof @{context}) |> rev
 \<close>
+
 declare reachable_def[rewrite]
+
 lemma rtrancl_onD[forward]: "(a, b) \<in> rtrancl_on A r \<Longrightarrow> a = b \<and> a \<in> A \<and> b \<in> A \<or> a \<noteq> b \<and> (a, b) \<in> r\<^sup>+"
   apply(induction rule: rtrancl_on.induct)
    apply(auto simp: trancl.trancl_into_trancl)
   done
 declare rtrancl_refl[resolve]
-local_setup \<open>add_forward_prfstep_cond @{thm trancl_trans} (with_conds ["?x \<noteq> ?y", "?y \<noteq> ?x"])\<close>
+local_setup \<open>add_forward_prfstep_cond @{thm trancl_trans} (with_conds ["?x \<noteq> ?y", "?y \<noteq> ?z"])\<close>
 local_setup \<open>add_forward_prfstep_cond @{thm r_into_trancl} [with_filt (not_trancl "r")]\<close>
 
 context wf_digraph
@@ -43,24 +50,32 @@ reachable1_reachable reachable_adjI
 
 declare [[show_hyps]]
 local_setup \<open>add_forward_prfstep @{thm reachable_awalkI}\<close>
+local_setup \<open>add_resolve_prfstep @{thm reachable1_reachable}\<close>
 
-ML \<open>
-val b = Normalizer.get_normalizers (Context.Proof @{context})
-val a = get_prfsteps (Context.Proof @{context}) |> rev
-\<close>
+(*
+local_setup \<open>add_forward_prfstep_cond @{thm awalk_appendI} (with_conds ["?u \<noteq> ?v", "?v \<noteq> ?w"])\<close>
+*)
+
 end
+
 ML \<open>
 get_prfsteps (Context.Proof @{context}) |> rev
 \<close>
 
-lemma (in wf_digraph) "awalk u p v \<Longrightarrow> u \<rightarrow>\<^sup>* v"
-  using [[show_hyps]]
-  apply(auto2)
-  done
+context wf_digraph
+begin
+ML \<open>
+get_prfsteps (Context.Proof @{context}) |> filter (fn p => match_string "reachable*" (#name p))
+\<close>
 
-print_attributes
+end
+
+ML \<open>
+val (_ : Proof.state) = @{undefined}
+\<close>
+
 lemma (in wf_digraph) "u \<rightarrow>\<^sup>+ v \<Longrightarrow> v \<rightarrow>\<^sup>* y \<Longrightarrow> y \<rightarrow> x \<Longrightarrow> u \<rightarrow>\<^sup>+ x"
-  using [[print_trace]]
+  using [[print_trace, show_hyps]]
   apply(auto2)
   done
 
@@ -69,26 +84,27 @@ lemma "(u, v) \<in> r\<^sup>* \<Longrightarrow> (v, y) \<in> r\<^sup>* \<Longrig
   apply(auto2)
   done
 
-
 thm rtranclD
 lemma (in wf_digraph)
-  assumes "awalk u p v" "v \<rightarrow>\<^sup>* y" "y \<rightarrow> x"
+  assumes "awalk u p v" "v \<rightarrow>\<^sup>+ y" "y \<rightarrow> x"
   shows "u \<rightarrow>\<^sup>* x"
   using assms
-  using [[show_hyps]]
+  apply -
+  using [[show_hyps, print_trace]]
+  apply auto2 done
 
-  apply(auto2)
-  using assms reachable_adj_trans reachable_awalk reachable_trans
-   apply -
-  apply metis+
-  done
+context pre_digraph
+begin
 
+find_theorems "apath  _ _ _ \<Longrightarrow> awalk _ _ _"
+local_setup \<open>add_rewrite_rule @{thm apath_def}\<close>
+end
 
 lemma (in wf_digraph)
-  assumes  "apath u p1 v" "v \<rightarrow> y" "trail y p2 x"
+  assumes "apath u p1 v" "v \<rightarrow> y" "trail y p2 x"
   shows "\<exists>e. awalk u (p1@e#p2) x"
   using assms
-  using reachable_awalk unfolding trail_def apath_def apply(auto) sorry
+  using reachable_awalk
 
 lemma (in wf_digraph)
   assumes "v \<rightarrow>\<^sup>* y" "y \<rightarrow> x" "x \<rightarrow>\<^sup>+ v"
