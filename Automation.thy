@@ -45,16 +45,7 @@ local_setup \<open>add_rewrite_rule @{thm trail_def}\<close>
 local_setup \<open>add_resolve_prfstep @{thm cycle_awalkI}\<close>
 local_setup \<open>add_rewrite_rule @{thm \<mu>_reach_conv}\<close>
 
-find_theorems "arc_ends"
 end
-
-
-find_theorems "_ \<Longrightarrow> apath _ _ _"
-thm pre_digraph.apath_def
-
-ML \<open>
-get_prfsteps (Context.Proof @{context}) |> rev
-\<close>
 
 context wf_digraph
 begin
@@ -64,12 +55,13 @@ get_prfsteps (Context.Proof @{context}) |> filter (fn p => match_string "reachab
 
 end
 
+declare [[show_hyps]]
+
 lemma (in wf_digraph) "u \<rightarrow>\<^sup>+ v \<Longrightarrow> v \<rightarrow>\<^sup>* y \<Longrightarrow> y \<rightarrow> x \<Longrightarrow> u \<rightarrow>\<^sup>+ x"
   using [[print_trace, show_hyps]]
   apply(auto2)
   done
 
-thm rtranclD
 lemma (in wf_digraph)
   assumes "awalk u p v" "v \<rightarrow>\<^sup>+ y" "y \<rightarrow> x"
   shows "u \<rightarrow>\<^sup>* x"
@@ -81,9 +73,10 @@ lemma (in wf_digraph)
 lemma (in wf_digraph)
   assumes "apath u p1 v" "v \<rightarrow> y" "trail y p2 x"
   shows "\<exists>e. awalk u (p1@e#p2) x"
-  using assms
-  apply (auto2)
-  done
+  using assms apply -
+@proof
+@qed
+(* This works: apply(auto2) done *)
 
 lemma (in wf_digraph)
   assumes "v \<rightarrow>\<^sup>* y" "y \<rightarrow> x" "x \<rightarrow>\<^sup>+ v"
@@ -107,9 +100,5 @@ lemma (in wf_digraph)
   using assms
   apply(auto2)
   done
-
-text \<open>
-  In general, the automation does not seem to work so well if you mix reachability and awalks.
-\<close>
 
 end
