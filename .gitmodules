@@ -1,4 +1,4 @@
 [submodule "afp-2021-1"]
 	path = afp-2021-1
 	url = https://github.com/lukasstevens/mirror-afp-2021-1
-	branch = localise-auto2 
+	branch = localise-auto2
