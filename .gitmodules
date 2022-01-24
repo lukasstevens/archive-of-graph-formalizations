@@ -1,4 +1,4 @@
-[submodule "afp-2021"]
-	path = afp-2021
-	url = https://github.com/lukasstevens/mirror-afp-2021
-	branch = localise-auto2
+[submodule "afp-2021-1"]
+	path = afp-2021-1
+	url = https://github.com/lukasstevens/mirror-afp-2021-1
+	branch = localise-auto2 
